@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Arrays;
 
 public class JacksonUtilsTest {
     
@@ -91,21 +92,45 @@ public class JacksonUtilsTest {
                 "[{\"key\":\"value\"}]".getBytes(),
                 JacksonUtils.toJsonBytes(Collections.singletonList(Collections.singletonMap("key", "value")))
         );
-        Assert.assertArrayEquals(
-                "{\"aLong\":0,\"aInteger\":1,\"aBoolean\":false}".getBytes(),
-                JacksonUtils.toJsonBytes(new TestOfAtomicObject())
-        );
+
+        // FIRST FLAKY ASSERTION
+        // Assert.assertArrayEquals( 
+        //         "{\"aLong\":0,\"aInteger\":1,\"aBoolean\":false}".getBytes(),
+        //         JacksonUtils.toJsonBytes(new TestOfAtomicObject())
+        // );
+
+        // PROPOSED FIX
+        byte[] atomicObjectJsonBytes = JacksonUtils.toJsonBytes(new TestOfAtomicObject());
+        boolean atomicObjectJsonBytesCorrect = 
+                Arrays.equals("{\"aLong\":0,\"aInteger\":1,\"aBoolean\":false}".getBytes(), atomicObjectJsonBytes)
+                || Arrays.equals("{\"aLong\":0,\"aBoolean\":false,\"aInteger\":1}".getBytes(), atomicObjectJsonBytes)
+                || Arrays.equals("{\"aInteger\":1,\"aLong\":0,\"aBoolean\":false}".getBytes(), atomicObjectJsonBytes)
+                || Arrays.equals("{\"aInteger\":1,\"aBoolean\":false,\"aLong\":0}".getBytes(), atomicObjectJsonBytes)
+                || Arrays.equals("{\"aBoolean\":false,\"aLong\":0,\"aInteger\":1}".getBytes(), atomicObjectJsonBytes)
+                || Arrays.equals("{\"aBoolean\":false,\"aInteger\":1,\"aLong\":0}".getBytes(), atomicObjectJsonBytes);
+        Assert.assertTrue(atomicObjectJsonBytesCorrect);
+
         Assert.assertArrayEquals("{\"date\":1626192000000}".getBytes(), JacksonUtils.toJsonBytes(new TestOfDate()));
         // only public
         Assert.assertArrayEquals(
                 "{\"publicAccessModifier\":\"public\"}".getBytes(),
                 JacksonUtils.toJsonBytes(new TestOfAccessModifier())
         );
+
+        // SECOND FLAKY ASSERTION
         // getter is also recognized
-        Assert.assertArrayEquals(
-                "{\"value\":\"value\",\"key\":\"key\"}".getBytes(),
-                JacksonUtils.toJsonBytes(new TestOfGetter())
-        );
+        // Assert.assertArrayEquals(
+        //         "{\"value\":\"value\",\"key\":\"key\"}".getBytes(),
+        //         JacksonUtils.toJsonBytes(new TestOfGetter())
+        // );
+
+        // PROPOSED FIX
+        byte[] getterJsonBytes = JacksonUtils.toJsonBytes(new TestOfGetter());
+        boolean getterJsonBytesCorrect = 
+                Arrays.equals("{\"value\":\"value\",\"key\":\"key\"}".getBytes(), getterJsonBytes)
+                || Arrays.equals("{\"key\":\"key\",\"value\":\"value\"}".getBytes(), getterJsonBytes);
+        Assert.assertTrue(getterJsonBytesCorrect);
+
         // annotation available
         Assert.assertArrayEquals(
                 ("{\"@type\":\"JacksonUtilsTest$TestOfAnnotationSub\",\"date\":\"2021-07-14\",\"subField\":\"subField\"," 
@@ -474,7 +499,7 @@ public class JacksonUtilsTest {
         Assert.assertEquals(999, restResult.getData().get("integer"));
     }
     
-    static class TestOfAtomicObject {
+    static class TestOfAtomicObject { 
         
         public AtomicLong aLong = new AtomicLong(0);
         
